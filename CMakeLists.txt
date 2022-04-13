@@ -16,7 +16,8 @@ else()
 endif()
 
 include_directories(lib/glad/include)
-add_executable(gameoflife src/main.c lib/glad/src/glad.c)
+include_directories(src)
+add_executable(gameoflife src/main.c lib/glad/src/glad.c src/life.c src/defines.h src/perf.c src/perf.h)
 
 # GLFW
 find_package(glfw3 3.3 REQUIRED)

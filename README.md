@@ -4,7 +4,7 @@ approach possible, then progressively optimise it to see how fast I can get it t
 will be stored on its own branch so it's possible to benchmark and compare all of them. The master 
 branch will have the most up-to-date version.
 
-Graphics are rendered using OpenGL 4.4. The window is created with GLFW, and OpenGL is loaded by
+Graphics are rendered using OpenGL 4.1. The window is created with GLFW, and OpenGL is loaded by
 GLAD.
 
 Memory safety testing is done using Google Sanitizers. I'm compiling with Clang 12 right now 
@@ -19,7 +19,7 @@ No optimisation outside of compiler options attempted.
 You will need:
 
 - GLFW (`sudo apt install libglfw3 libglfw3-dev`)
-- OpenGL 4.4 or newer
+- OpenGL 4.1 or newer (probably not a hard limit, just chosen based on what my system supports)
 
 ## Licence
 Mozilla Public Licence v2.0
