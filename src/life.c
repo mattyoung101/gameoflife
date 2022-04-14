@@ -1,15 +1,15 @@
-/*
- * Copyright (c) 2022 Matt Young. All rights reserved.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
- * If a copy of the MPL was not distributed with this file, You can obtain one at
- * http://mozilla.org/MPL/2.0/.
- */
+// Copyright (c) 2022 Matt Young. All rights reserved.
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+// If a copy of the MPL was not distributed with this file, You can obtain one at
+// http://mozilla.org/MPL/2.0/.
 #include "life.h"
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
+#include <assert.h>
 
 /// Game of Life field. Stored as a 1D array, although it's actually 2D. True if cell is active,
 /// false if it's dead.
@@ -31,13 +31,15 @@ typedef struct {
  * @param x x coord of cell
  * @param y y coord of cell
  * @param value true if cell alive, false if cell dead
+ * @return true if the cell could be set successfully, else false
  */
-static inline void setCell(bool *gridPtr, uint32_t x, uint32_t y, bool value) {
+static inline bool setCell(bool *gridPtr, uint32_t x, uint32_t y, bool value) {
     if (x < 0 || y < 0 || x >= gridWidth || y >= gridHeight) {
         // out of bounds
-        return;
+        return false;
     }
     gridPtr[x + gridWidth * y] = value;
+    return true;
 }
 
 /// Gets a cell from the GoL field, accounting for wrapping
@@ -72,6 +74,19 @@ static uint8_t sumNeighbours(uint32_t x, uint32_t y) {
         }
     }
     return count;
+}
+
+void lifeInit(uint32_t width, uint32_t height) {
+    if (width < 0 || height < 0) {
+        fprintf(stderr, "life: invalid grid size %dx%d\n", width, height);
+        exit(1);
+    }
+    grid = calloc(width * height, sizeof(bool));
+    nextGrid = calloc(width * height, sizeof(bool));
+    neighbourTable = calloc(width * height, sizeof(uint8_t));
+    gridWidth = width;
+    gridHeight = height;
+    printf("life: initialised %ux%u grid\n", width, height);
 }
 
 void lifeUpdate(void) {
@@ -119,25 +134,46 @@ void lifeUpdate(void) {
     memcpy(grid, nextGrid, gridWidth * gridHeight * sizeof(bool));
 }
 
-void lifeInit(uint32_t width, uint32_t height) {
-    grid = calloc(width * height, sizeof(bool));
-    nextGrid = calloc(width * height, sizeof(bool));
-    neighbourTable = calloc(width * height, sizeof(uint8_t));
-    gridWidth = width;
-    gridHeight = height;
-}
-
-void lifeInsertPatternPlainText(const char *filename, uint32_t x, uint32_t y) {
+void lifeInsertPatternPlainText(const char *filename, uint32_t oX, uint32_t oY) {
     FILE *f = fopen(filename, "r");
+    if (f == NULL) {
+        fprintf(stderr, "life: failed to open file %s for reading: %s\n",
+                filename, strerror(errno));
+        exit(1);
+    }
+    printf("life: reading plain text pattern %s\n", filename);
+    uint32_t y = 0;
+    size_t unused = 0;
+
     while (true) {
-        size_t lineSize = 0;
         char *line = NULL;
-        if (getline(&line, &lineSize, f) == -1) {
+        // go over each line in the file
+        // note we just assume the output of getline is null terminated (which it should be?) so
+        // we ignore the "n" parameter
+        if (getline(&line, &unused, f) == -1) {
             // got EOF, exit our reading loop
             free(line);
             break;
         }
+        // skip comments
+        if (line[0] == '!') {
+            free(line);
+            continue;
+        }
+        // iterate over each char in the line to get our x coordinates and set cells
+        // note that in the plain text format, the "O" character means a cell is alive
+        for (uint32_t x = 0; x < strlen(line); x++) {
+            // if we failed to set the cell, raise an error
+            if (!setCell(grid, oX + x, oY + y, line[x] == 'O')) {
+                fprintf(stderr, "life: failed to set cell at %u,%u for line: %s\n",
+                        oX + x, oY + y, line);
+                fprintf(stderr, "life: please check the current grid size of %ux%u "
+                                "can hold the pattern.\n", gridWidth, gridHeight);
+                exit(1);
+            }
+        }
 
+        y++;
         free(line);
     }
     fclose(f);
@@ -145,7 +181,7 @@ void lifeInsertPatternPlainText(const char *filename, uint32_t x, uint32_t y) {
 
 void lifeRenderConsole(void) {
     for (uint32_t y = 0; y < gridHeight; y++) {
-        for (uint32_t x = 0; x < gridHeight; x++) {
+        for (uint32_t x = 0; x < gridWidth; x++) {
             bool alive = getCell(x, y);
             if (alive) {
                 printf("O");

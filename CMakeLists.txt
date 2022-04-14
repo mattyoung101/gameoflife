@@ -17,9 +17,10 @@ endif()
 
 include_directories(lib/glad/include)
 include_directories(src)
-add_executable(gameoflife src/main.c lib/glad/src/glad.c src/life.c src/defines.h src/perf.c src/perf.h)
+add_executable(gameoflife src/main.c lib/glad/src/glad.c src/life.c src/defines.h src/perf.c src/perf.h src/utils.c src/utils.h)
+target_link_libraries(gameoflife dl)
 
-# GLFW
-find_package(glfw3 3.3 REQUIRED)
-target_link_libraries(gameoflife glfw dl)
-include_directories(${glfw_INCLUDE_DIRS})
+# SDL
+find_package(SDL2 REQUIRED)
+include_directories(${SDL2_INCLUDE_DIRS})
+target_link_libraries(gameoflife ${SDL2_LIBRARIES})
