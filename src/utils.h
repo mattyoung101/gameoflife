@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
 /**
  * Parses a size string in the format "[width]x[height]" with error checking
  * @param size size string (not modified)

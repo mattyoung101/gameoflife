@@ -4,6 +4,7 @@
 // If a copy of the MPL was not distributed with this file, You can obtain one at
 // http://mozilla.org/MPL/2.0/.
 #include "perf.h"
+#include "log.h"
 #include <string.h>
 
 void perfUpdate(PerfCounter_t *counter, double time) {
@@ -24,5 +25,5 @@ void perfClear(PerfCounter_t *counter) {
 
 void perfDumpConsole(PerfCounter_t *counter, const char *tag) {
     double avg = counter->sum / (double) counter->count;
-    printf("[%s] min/max/avg: %.2f/%.2f/%.2f\n", tag, counter->min, counter->max, avg);
+    log_debug("[%s] min/max/avg: %.2f/%.2f/%.2f", tag, counter->min, counter->max, avg);
 }

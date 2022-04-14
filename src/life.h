@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <SDL.h>
 
 /**
  * Initialises the Game of Life
@@ -15,20 +16,19 @@
  */
 void lifeInit(uint32_t width, uint32_t height);
 
-/**
- * Frees memory associated with lifeInit()
- */
+/// Frees memory associated with lifeInit()
 void lifeDestroy(void);
 
-/**
- * Increments the world by one tick
- */
+
+/// Increments the world by one tick
 void lifeUpdate(void);
 
-/**
- * Renders the current grid to the console.
- */
+
+/// Renders the current grid to the console.
 void lifeRenderConsole(void);
+
+/// Renders the current grid to an SDL renderer and texture.
+void lifeRenderSDL(SDL_Texture *texture);
 
 /**
  * Inserts a pattern, encoded in plain text format, into the grid. The (x,y) parameters are where the
@@ -54,3 +54,6 @@ void lifeInsertPatternPlainText(const char *filename, uint32_t oX, uint32_t oY);
  * @param y where to insert the pattern on the current grid: y-coord
  */
 void lifeInsertPatternRLE(const char *filename, uint32_t x, uint32_t y);
+
+/// Returns the number of generations that have passed.
+uint64_t lifeGetGenerations(void);

@@ -4,6 +4,7 @@
 // If a copy of the MPL was not distributed with this file, You can obtain one at
 // http://mozilla.org/MPL/2.0/.
 #include "life.h"
+#include "log.h"
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,8 +19,11 @@ static bool *grid = NULL;
 static bool *nextGrid = NULL;
 /// How many neighbours each cell in the grid has
 static uint8_t *neighbourTable = NULL;
+/// Pixel data for SDL
+static uint32_t *pixelData = NULL;
 /// Field width and height in cells
 static uint32_t gridWidth = 0, gridHeight = 0;
+static uint64_t generations = 0;
 
 typedef struct {
     uint32_t x, y;
@@ -78,15 +82,16 @@ static uint8_t sumNeighbours(uint32_t x, uint32_t y) {
 
 void lifeInit(uint32_t width, uint32_t height) {
     if (width < 0 || height < 0) {
-        fprintf(stderr, "life: invalid grid size %dx%d\n", width, height);
+        log_error("Invalid grid size %dx%d", width, height);
         exit(1);
     }
     grid = calloc(width * height, sizeof(bool));
     nextGrid = calloc(width * height, sizeof(bool));
     neighbourTable = calloc(width * height, sizeof(uint8_t));
+    pixelData = calloc(width * height, sizeof(uint32_t));
     gridWidth = width;
     gridHeight = height;
-    printf("life: initialised %ux%u grid\n", width, height);
+    log_info("Initialised %ux%u grid", width, height);
 }
 
 void lifeUpdate(void) {
@@ -132,16 +137,16 @@ void lifeUpdate(void) {
 
     // 3. Update grid
     memcpy(grid, nextGrid, gridWidth * gridHeight * sizeof(bool));
+    generations++;
 }
 
 void lifeInsertPatternPlainText(const char *filename, uint32_t oX, uint32_t oY) {
     FILE *f = fopen(filename, "r");
     if (f == NULL) {
-        fprintf(stderr, "life: failed to open file %s for reading: %s\n",
-                filename, strerror(errno));
+        log_error("Failed to open file %s for reading: %s", filename, strerror(errno));
         exit(1);
     }
-    printf("life: reading plain text pattern %s\n", filename);
+    log_info("Reading plain text pattern %s", filename);
     uint32_t y = 0;
     size_t unused = 0;
 
@@ -165,10 +170,9 @@ void lifeInsertPatternPlainText(const char *filename, uint32_t oX, uint32_t oY) 
         for (uint32_t x = 0; x < strlen(line); x++) {
             // if we failed to set the cell, raise an error
             if (!setCell(grid, oX + x, oY + y, line[x] == 'O')) {
-                fprintf(stderr, "life: failed to set cell at %u,%u for line: %s\n",
-                        oX + x, oY + y, line);
-                fprintf(stderr, "life: please check the current grid size of %ux%u "
-                                "can hold the pattern.\n", gridWidth, gridHeight);
+                log_error("Failed to set cell at %u,%u for line: %s",oX + x, oY + y, line);
+                log_error("Please check the current grid size of %ux%u can hold the pattern.",
+                          gridWidth, gridHeight);
                 exit(1);
             }
         }
@@ -193,8 +197,26 @@ void lifeRenderConsole(void) {
     }
 }
 
+void lifeRenderSDL(SDL_Texture *texture) {
+    // copy over grid data
+    // TODO do we need to memset pixelData?
+    for (uint32_t y = 0; y < gridHeight; y++) {
+        for (uint32_t x = 0; x < gridWidth; x++) {
+            bool alive = getCell(x, y); // optimisation: don't use bounds checked version of this
+            pixelData[x + gridWidth * y] = alive ? 0xFFFFFF : 0;
+        }
+    }
+
+    SDL_UpdateTexture(texture, NULL, pixelData, gridWidth * sizeof(uint32_t));
+}
+
 void lifeDestroy(void) {
+    free(pixelData);
     free(grid);
     free(nextGrid);
     free(neighbourTable);
+}
+
+uint64_t lifeGetGenerations(void) {
+    return generations;
 }

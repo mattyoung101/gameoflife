@@ -5,12 +5,18 @@
 // http://mozilla.org/MPL/2.0/.
 #pragma once
 
+/**
+ * Version history:
+ * v0.0.1-noopt: initial release, no optimisations
+ */
+#define VERSION "0.0.1-noopt"
+
 /// Default window width
 #define DEFAULT_WINDOW_WIDTH 1600
 /// Default window height
 #define DEFAULT_WINDOW_HEIGHT 900
 
 /// Default GoL grid width
-#define DEFAULT_GRID_WIDTH 64
+#define DEFAULT_GRID_WIDTH 256
 /// Default GoL grid height
-#define DEFAULT_GRID_HEIGHT 24
+#define DEFAULT_GRID_HEIGHT 256

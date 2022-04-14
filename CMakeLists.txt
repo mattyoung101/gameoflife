@@ -16,8 +16,10 @@ else()
 endif()
 
 include_directories(lib/glad/include)
+include_directories(lib/log)
 include_directories(src)
-add_executable(gameoflife src/main.c lib/glad/src/glad.c src/life.c src/defines.h src/perf.c src/perf.h src/utils.c src/utils.h)
+add_executable(gameoflife src/main.c lib/glad/src/glad.c src/life.c src/defines.h src/perf.c
+    src/perf.h src/utils.c src/utils.h lib/log/log.c lib/log/log.h)
 target_link_libraries(gameoflife dl)
 
 # SDL
