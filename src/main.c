@@ -19,21 +19,23 @@
 
 static bool paused = false;
 static PerfCounter_t perf = {0};
-static struct option longOpts[] = {
-        // Enable console rendering. Does not initialise the GUI.
-        { "console-renderer", no_argument, NULL, 0 },
-        // GoL grid size in cells, format is "[width]x[height]". Defaults to "64x64"
-        { "grid-size", optional_argument, NULL, 0 },
-        // Window size in pixels, format is "[width]x[height]". Defaults to "1600x900".
-        { "window-size", optional_argument, NULL, 0 },
-        { NULL, 0, NULL, 0}
-};
+
+// Command line options:
+// GoL grid size in cells, format is "[width]x[height]". Defaults to "64x64"
+// Window size in pixels, format is "[width]x[height]". Defaults to "1600x900".
+// Maximum framerate. Defaults to -1, unlimited.
+// Initial pattern to load.
+// Whether to enable graphics or not (for performance testing).
 
 static void printSDLVersion(void) {
     SDL_version sdlVersionLinked;
     SDL_GetVersion(&sdlVersionLinked);
     log_info("Using SDL v%d.%d.%d", sdlVersionLinked.major, sdlVersionLinked.minor,
            sdlVersionLinked.patch);
+}
+
+static double getTime() {
+    return (double) SDL_GetPerformanceCounter() / (double) SDL_GetPerformanceFrequency();
 }
 
 int main(int argc, char *argv[]) {
@@ -53,11 +55,13 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    // TODO decide window size based on actual game of life field size
     SDL_Window *window = SDL_CreateWindow("Game of Life",
                                           SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,
-                                          windowWidth,windowHeight,
+                                          windowWidth, windowHeight,
                                           SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     assert(window != NULL);
+
     SDL_Renderer *render = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     assert(render != NULL);
     SDL_RendererInfo renderInfo;
@@ -74,15 +78,16 @@ int main(int argc, char *argv[]) {
     lifeInsertPatternPlainText("../data/patterns/gosperglidergun.txt", 0, 0);
 
     // viewport for game of life
+    // FIXME have this support resize
     SDL_Rect viewport = {0};
     // https://stackoverflow.com/a/1373879/5007892
     int scaleFactor = MIN(windowWidth / gameWidth, windowHeight / gameHeight);
     if (scaleFactor <= 0) scaleFactor = 1;
-    viewport.w = ((int) gameWidth * scaleFactor) - 64;
-    viewport.h = ((int) gameHeight * scaleFactor) - 64;
+    viewport.w = ((int) gameWidth * scaleFactor) - 32;
+    viewport.h = ((int) gameHeight * scaleFactor) - 32;
     // https://stackoverflow.com/a/27913142/5007892
-    viewport.x = 0 + ((windowWidth - viewport.w) / 2);
-    viewport.y = 0;//windowHeight - ((windowHeight - viewport.y) / 2);
+    viewport.x = (windowWidth - viewport.w) / 2;
+    viewport.y = (windowHeight - viewport.h) / 2;
 
     // main loop of graphical program
     bool shouldQuit = false;
@@ -94,42 +99,42 @@ int main(int argc, char *argv[]) {
             if (event.type == SDL_QUIT) {
                 shouldQuit = true;
             } else if (event.type == SDL_KEYUP) {
-                if (event.type == SDL_KEYUP && event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
+                if (event.type == SDL_KEYUP && (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE ||
+                        event.key.keysym.scancode == SDL_SCANCODE_Q)) {
                     shouldQuit = true;
                 }
             }
         }
-        double begin = SDL_GetTicks();
+        double begin = getTime();
 
         // update GoL
+        // TODO add zoom
         lifeUpdate();
 
         // update graphics
-        // FIXME graphics are too fast, we should only render every n-th generation perhaps
         SDL_SetRenderDrawColor(render, 0x80, 0x80, 0x80, 0xFF);
         SDL_RenderClear(render);
         lifeRenderSDL(gameTexture);
         SDL_RenderCopy(render, gameTexture, NULL, &viewport);
         SDL_RenderPresent(render);
 
+        // TODO add slow down parameter
         //SDL_Delay(15);
 
         // update performance counters
-        double end = SDL_GetTicks();
-        double delta = end - begin;
+        double end = getTime();
+        double delta = (end - begin) * 1000.0;
         printTimer += delta;
         resetTimer += delta;
         if (printTimer >= 1000.0) {
-            perfDumpConsole(&perf, "ms per frame");
-            // TODO print generations per second
-            log_info("Generation %lld", lifeGetGenerations());
+            perfDumpConsole(&perf, "FPS");
             printTimer = 0.0;
         }
         if (resetTimer >= 2000.0) {
             perfClear(&perf);
             resetTimer = 0.0;
         }
-        perfUpdate(&perf, delta);
+        perfUpdate(&perf, 1000.0 / delta);
     }
 
     SDL_DestroyTexture(gameTexture);

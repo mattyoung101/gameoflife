@@ -183,6 +183,10 @@ void lifeInsertPatternPlainText(const char *filename, uint32_t oX, uint32_t oY) 
     fclose(f);
 }
 
+void lifeInsertPatternRLE(const char *filename, uint32_t x, uint32_t y) {
+
+}
+
 void lifeRenderConsole(void) {
     for (uint32_t y = 0; y < gridHeight; y++) {
         for (uint32_t x = 0; x < gridWidth; x++) {
@@ -199,14 +203,12 @@ void lifeRenderConsole(void) {
 
 void lifeRenderSDL(SDL_Texture *texture) {
     // copy over grid data
-    // TODO do we need to memset pixelData?
     for (uint32_t y = 0; y < gridHeight; y++) {
         for (uint32_t x = 0; x < gridWidth; x++) {
             bool alive = getCell(x, y); // optimisation: don't use bounds checked version of this
             pixelData[x + gridWidth * y] = alive ? 0xFFFFFF : 0;
         }
     }
-
     SDL_UpdateTexture(texture, NULL, pixelData, gridWidth * sizeof(uint32_t));
 }
 
