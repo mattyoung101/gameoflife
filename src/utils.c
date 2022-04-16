@@ -35,3 +35,7 @@ void utilsParseSize(const char *size, uint32_t *widthOut, uint32_t *heightOut) {
     free(copy);
     exit(1);
 }
+
+bool utilsStartsWith(const char *prefix, const char *str) {
+    return strncmp(prefix, str, strlen(prefix)) == 0;
+}

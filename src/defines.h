@@ -17,6 +17,6 @@
 #define DEFAULT_WINDOW_HEIGHT 900
 
 /// Default GoL grid width
-#define DEFAULT_GRID_WIDTH 128
+#define DEFAULT_GRID_WIDTH 1750
 /// Default GoL grid height
-#define DEFAULT_GRID_HEIGHT 128
+#define DEFAULT_GRID_HEIGHT 1750

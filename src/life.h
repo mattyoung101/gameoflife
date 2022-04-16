@@ -50,10 +50,10 @@ void lifeInsertPatternPlainText(const char *filename, uint32_t oX, uint32_t oY);
  * Same as `lifeInsertPatternPlainText` but imports run length encoded (RLE) patterns.
  * See `lifeInsertPatternPlainText` for more info.
  * @param filename path to run length encoded grid file
- * @param x where to insert the pattern on the current grid: x-coord
- * @param y where to insert the pattern on the current grid: y-coord
+ * @param oX where to insert the pattern on the current grid: oX-coord
+ * @param oY where to insert the pattern on the current grid: oY-coord
  */
-void lifeInsertPatternRLE(const char *filename, uint32_t x, uint32_t y);
+void lifeInsertPatternRLE(const char *filename, uint32_t oX, uint32_t oY);
 
 /// Returns the number of generations that have passed.
 uint64_t lifeGetGenerations(void);

@@ -17,7 +17,6 @@
 #include <assert.h>
 #include "utils.h"
 
-static bool paused = false;
 static PerfCounter_t perf = {0};
 
 // Command line options:
@@ -25,8 +24,10 @@ static PerfCounter_t perf = {0};
 // Window size in pixels, format is "[width]x[height]". Defaults to "1600x900".
 // Maximum framerate. Defaults to -1, unlimited.
 // Initial pattern to load.
+// Coordinates on where to insert initial pattern.
 // Whether to enable graphics or not (for performance testing).
 
+/// Print runtime SDL version
 static void printSDLVersion(void) {
     SDL_version sdlVersionLinked;
     SDL_GetVersion(&sdlVersionLinked);
@@ -34,9 +35,19 @@ static void printSDLVersion(void) {
            sdlVersionLinked.patch);
 }
 
-static double getTime() {
+/// Get a high resolution time in SECONDS using SDL_GetPerformanceCounter
+static double getTime(void) {
     return (double) SDL_GetPerformanceCounter() / (double) SDL_GetPerformanceFrequency();
 }
+
+/// Updates the window title for when the game is paused
+static void updatePausedWindowTitle(SDL_Window *window) {
+    char buf[256] = {0};
+    snprintf(buf, 256, "Game of Life (paused on generation %lu)",
+             lifeGetGenerations());
+    SDL_SetWindowTitle(window, buf);
+}
+
 
 int main(int argc, char *argv[]) {
     log_info("Conway's Game of Life v" VERSION);
@@ -56,7 +67,7 @@ int main(int argc, char *argv[]) {
     }
 
     // TODO decide window size based on actual game of life field size
-    SDL_Window *window = SDL_CreateWindow("Game of Life",
+    SDL_Window *window = SDL_CreateWindow("Game of Life (running)",
                                           SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,
                                           windowWidth, windowHeight,
                                           SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
@@ -75,33 +86,60 @@ int main(int argc, char *argv[]) {
 
     // initialise game of life
     lifeInit(gameWidth, gameHeight);
-    lifeInsertPatternPlainText("../data/patterns/gosperglidergun.txt", 0, 0);
+    lifeInsertPatternRLE("../data/patterns/turingmachine.rle", 0, 0);
+    perfClear(&perf);
 
     // viewport for game of life
-    // FIXME have this support resize
+    // FIXME have this support resize window
     SDL_Rect viewport = {0};
     // https://stackoverflow.com/a/1373879/5007892
-    int scaleFactor = MIN(windowWidth / gameWidth, windowHeight / gameHeight);
-    if (scaleFactor <= 0) scaleFactor = 1;
-    viewport.w = ((int) gameWidth * scaleFactor) - 32;
-    viewport.h = ((int) gameHeight * scaleFactor) - 32;
+    double scaleFactor = fmin((double) windowWidth / gameWidth, (double) windowHeight / gameHeight);
+    if (scaleFactor <= 0) {
+        // don't allow sub-zero sizes
+        scaleFactor = 1;
+    }
+    viewport.w = ((int) round(gameWidth * scaleFactor)) - 32;
+    viewport.h = ((int) round(gameHeight * scaleFactor)) - 32;
     // https://stackoverflow.com/a/27913142/5007892
     viewport.x = (windowWidth - viewport.w) / 2;
     viewport.y = (windowHeight - viewport.h) / 2;
 
+    log_debug("Scale factor: %.2f", scaleFactor);
+    log_debug("Game viewport (x,y,w,h): %d,%d,%d,%d", viewport.x, viewport.y, viewport.w, viewport.h);
+
     // main loop of graphical program
     bool shouldQuit = false;
+    bool paused = false;
+    bool advanceOneFrame = false;
     double printTimer = 0.0;
     double resetTimer = 0.0;
+
     while (!shouldQuit) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 shouldQuit = true;
             } else if (event.type == SDL_KEYUP) {
-                if (event.type == SDL_KEYUP && (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE ||
-                        event.key.keysym.scancode == SDL_SCANCODE_Q)) {
+                if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE ||
+                        event.key.keysym.scancode == SDL_SCANCODE_Q) {
+                    // press "Q" or close window to quit
                     shouldQuit = true;
+                } else if (event.key.keysym.scancode == SDL_SCANCODE_SPACE) {
+                    // press "space" to toggle pause
+                    paused = !paused;
+                    if (paused) {
+                        updatePausedWindowTitle(window);
+                    } else {
+                        SDL_SetWindowTitle(window, "Game of Life (running)");
+                        // reset performance counter after pausing
+                        perfClear(&perf);
+                        printTimer = 0.0;
+                    }
+                }
+            } else if (event.type == SDL_KEYDOWN) {
+                if (event.key.keysym.scancode == SDL_SCANCODE_RIGHT && paused) {
+                    // press right arrow to advance one frame (only when paused)
+                    advanceOneFrame = true;
                 }
             }
         }
@@ -109,7 +147,15 @@ int main(int argc, char *argv[]) {
 
         // update GoL
         // TODO add zoom
-        lifeUpdate();
+        if (!paused) {
+            // if not paused, always update
+            lifeUpdate();
+        } else if (advanceOneFrame) {
+            // otherwise, if we are paused, we might need to advance one frame
+            lifeUpdate();
+            updatePausedWindowTitle(window);
+            advanceOneFrame = false;
+        }
 
         // update graphics
         SDL_SetRenderDrawColor(render, 0x80, 0x80, 0x80, 0xFF);
@@ -118,19 +164,25 @@ int main(int argc, char *argv[]) {
         SDL_RenderCopy(render, gameTexture, NULL, &viewport);
         SDL_RenderPresent(render);
 
-        // TODO add slow down parameter
-        //SDL_Delay(15);
+        // TODO add slow down parameter (max frames per second)
+        if (paused) {
+            // in paused mode just run at 30 fps to save compute; and don't update performance
+            // counters
+            SDL_Delay(33);
+            continue;
+        }
 
         // update performance counters
         double end = getTime();
         double delta = (end - begin) * 1000.0;
+
         printTimer += delta;
         resetTimer += delta;
         if (printTimer >= 1000.0) {
             perfDumpConsole(&perf, "FPS");
             printTimer = 0.0;
         }
-        if (resetTimer >= 2000.0) {
+        if (resetTimer >= 10000.0) {
             perfClear(&perf);
             resetTimer = 0.0;
         }

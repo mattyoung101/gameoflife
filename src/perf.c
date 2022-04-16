@@ -8,10 +8,10 @@
 #include <string.h>
 
 void perfUpdate(PerfCounter_t *counter, double time) {
-    if (time < counter->min) {
+    if (time <= counter->min) {
         // new min value
         counter->min = time;
-    } else if (time > counter->max) {
+    } else if (time >= counter->max) {
         // new max value
         counter->max = time;
     }
@@ -21,6 +21,10 @@ void perfUpdate(PerfCounter_t *counter, double time) {
 
 void perfClear(PerfCounter_t *counter) {
     memset(counter, 0, sizeof(PerfCounter_t));
+    // initialise min to a large positive number, and max to a large negative number, such that the
+    // first time we run we will always set those values
+    counter->min = 999999999;
+    counter->max = -99999999;
 }
 
 void perfDumpConsole(PerfCounter_t *counter, const char *tag) {
