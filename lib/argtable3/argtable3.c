@@ -3591,7 +3591,7 @@ typedef struct {
     int len;
 } TRexMatch;
 
-#ifdef __GNUC__
+#if 0
 TREX_API TRex* trex_compile(const TRexChar* pattern, const TRexChar** error, int flags) __attribute__((optimize(0)));
 #else
 TREX_API TRex* trex_compile(const TRexChar* pattern, const TRexChar** error, int flags);

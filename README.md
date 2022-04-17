@@ -36,6 +36,14 @@ The most basic implementation. No optimisation outside of compiler options attem
 though, I haven't written _intentionally_ slow code, I just haven't attempted any major optimisations
 yet.
 
+### Implementation 2 (v0.1.0-omp)
+- Parallelized grid update and screen update loops using OpenMP
+- Removed un-necessary memset to clear the neighbour table (the neighbour table gets overwritten
+anyway)
+- Inlined neighbour counting loop to cell update loop (now there's not two separate loops to calculate
+neighbours and update the grid, which should improve threaded performance)
+- Performed profile guided optimization **(note: not currently enabled, doesn't work too well yet)**
+
 ## Building and running
 You will need:
 

@@ -9,6 +9,13 @@ if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
     message(STATUS "Release build, enabling performance")
     add_compile_options(-O3 -march=native -mtune=native -flto)
     add_link_options(-flto)
+elseif("${CMAKE_BUILD_TYPE}" STREQUAL "ReleasePGO")
+    message(STATUS "Release build with profile guided optimisation")
+    # Use LLVM IR PGO (or its alternative in GCC):
+    # - https://source.android.com/devices/tech/perf/pgo
+    # - https://clang.llvm.org/docs/UsersManual.html#profiling-with-instrumentation
+    add_compile_options(-O3 -march=native -mtune=native -flto -fprofile-instr-generate=prof/gol-%p.profraw)
+    add_link_options(-flto -fprofile-instr-generate=prof/gol-%p.profraw)
 else()
     message(STATUS "Debug build, enabling sanitizers")
     add_compile_options(-O0 -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer)
@@ -28,3 +35,7 @@ target_link_libraries(gameoflife dl)
 find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
 target_link_libraries(gameoflife ${SDL2_LIBRARIES})
+
+# OpenMP
+find_package(OpenMP REQUIRED)
+target_link_libraries(gameoflife OpenMP::OpenMP_C OpenMP::OpenMP_CXX)

@@ -18,8 +18,6 @@
 static bool *grid = NULL;
 /// Field copy, used for updating
 static bool *nextGrid = NULL;
-/// How many neighbours each cell in the grid has
-static uint8_t *neighbourTable = NULL;
 /// Pixel data for SDL
 static uint32_t *pixelData = NULL;
 /// Field width and height in cells
@@ -75,6 +73,16 @@ static inline bool getCell(uint32_t x, uint32_t y) {
     return grid[x + gridWidth * y];
 }
 
+/// Like getCell but does not do any bounds checking
+static inline bool getCellUnsafe(uint32_t x, uint32_t y) {
+    return grid[x + gridWidth * y];
+}
+
+/// Like setCelll but does not do any bounds checking
+static inline void setCellUnsafe(bool *gridPtr, uint32_t x, uint32_t y, bool value) {
+    gridPtr[x + gridWidth * y] = value;
+}
+
 /**
  * Insert multiple cells into the grid.
  * @param gridPtr pointer to the grid to update
@@ -96,11 +104,12 @@ static void setCellMultiple(bool *gridPtr, uint32_t *x, uint32_t y, uint32_t cou
 }
 
 /// Calculates the sum of the neighbours of a cell in the GoL field
-static uint8_t sumNeighbours(uint32_t x, uint32_t y) {
+static inline uint8_t sumNeighbours(uint32_t x, uint32_t y) {
     uint8_t count = 0;
     for (int i = 0; i < NUM_DIRECTIONS; i++) {
         uint32_t dx = directions[i].x;
         uint32_t dy = directions[i].y;
+        // need to use bounds checked getCell here because neighbours could be out of the grid
         if (getCell(x + dx, y + dy)) {
             count++;
         }
@@ -115,7 +124,6 @@ void lifeInit(uint32_t width, uint32_t height) {
     }
     grid = calloc(width * height, sizeof(bool));
     nextGrid = calloc(width * height, sizeof(bool));
-    neighbourTable = calloc(width * height, sizeof(uint8_t));
     pixelData = calloc(width * height, sizeof(uint32_t));
     gridWidth = width;
     gridHeight = height;
@@ -123,42 +131,19 @@ void lifeInit(uint32_t width, uint32_t height) {
 }
 
 void lifeUpdate(void) {
-    // 0. Clear old data
-    memset(nextGrid, 0, gridWidth * gridHeight * sizeof(bool));
-    // optimisation: may not need this, because we overwrite it anyway
-    memset(neighbourTable, 0, gridWidth * gridHeight * sizeof(uint8_t));
-
     // 1. Calculate neighbours
     // optimisation: do step 1 and 2 in the same loop
+#pragma omp parallel for default(none) shared(gridHeight, gridWidth, nextGrid)
     for (uint32_t y = 0; y < gridHeight; y++) {
         for (uint32_t x = 0; x < gridWidth; x++) {
-            neighbourTable[x + gridWidth * y] = sumNeighbours(x, y);
-        }
-    }
+            // get neighbour count
+            uint8_t neighbours = sumNeighbours(x, y);
+            bool alive = getCellUnsafe(x, y);
 
-    // 2. Apply Game of Life rules
-    // Using Wikipedia condensed rules: https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life#Rules
-    // Also see the Algorithms section in the above article (for why we need two grids)
-    for (uint32_t y = 0; y < gridHeight; y++) {
-        for (uint32_t x = 0; x < gridWidth; x++) {
-            uint8_t neighbours = neighbourTable[x + gridWidth * y];
-            // optimisation: use grid access directly, skip out of bounds check, since it shouldn't
-            // be out of bounds
-            bool alive = getCell(x, y);
-
-            // TODO check these rule are correct
-            // shorter condition: neighbours == 3 || (neighbours == 2 && alive)
-            if (alive && (neighbours == 2 || neighbours == 3)) {
-                // 1. Any live cell with two or three live neighbours survives
-                // optimisation: do we really need this function call?
-                setCell(nextGrid, x, y, true);
-            } else if (!alive && neighbours == 3) {
-                // 2. Any dead cell with three live neighbours becomes a live cell.
-                setCell(nextGrid, x, y, true);
-            } else {
-                // 3. All other live cells die in the next generation. Similarly, all other dead cells stay dead.
-                setCell(nextGrid, x, y, false);
-            }
+            // 2. Apply Game of Life rules
+            // GoL rules condensed into one line! (via Rosetta Code)
+            // We know this cell can't be out of bounds because bouds are set in the loop
+            setCellUnsafe(nextGrid, x, y, neighbours == 3 || (neighbours == 2 && alive));
         }
     }
 
@@ -332,9 +317,10 @@ void lifeRenderConsole(void) {
 
 void lifeRenderSDL(SDL_Texture *texture) {
     // copy over grid data
+#pragma omp parallel for default(none) shared(gridHeight, gridWidth, pixelData)
     for (uint32_t y = 0; y < gridHeight; y++) {
         for (uint32_t x = 0; x < gridWidth; x++) {
-            bool alive = getCell(x, y); // optimisation: don't use bounds checked version of this
+            bool alive = getCellUnsafe(x, y);
             pixelData[x + gridWidth * y] = alive ? 0xFFFFFF : 0;
         }
     }
@@ -345,7 +331,6 @@ void lifeDestroy(void) {
     free(pixelData);
     free(grid);
     free(nextGrid);
-    free(neighbourTable);
 }
 
 uint64_t lifeGetGenerations(void) {

@@ -17,6 +17,7 @@
 #include <assert.h>
 #include "utils.h"
 #include "argtable3.h"
+#include <omp.h>
 
 static PerfCounter_t perf = {0};
 
@@ -119,6 +120,7 @@ int main(int argc, char *argv[]) {
     log_info("Conway's Game of Life v" VERSION);
     log_info("Copyright (c) 2022 Matt Young. Available under the Mozilla Public Licence 2.0.");
     printSDLVersion();
+    log_info("Using up to %d OMP threads", omp_get_max_threads());
     log_set_level(LOG_DEBUG);
 
     int windowWidth = 0, windowHeight = 0;

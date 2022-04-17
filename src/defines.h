@@ -10,7 +10,7 @@
  * v0.0.1-noopt: initial game of life implementation, no major optimisations
  * v0.1.0-noopt: dded command line parser and various improvements
  */
-#define VERSION "0.1.0-noopt"
+#define VERSION "0.1.0-omp"
 
 /// Default window width
 #define DEFAULT_WINDOW_WIDTH 1600
