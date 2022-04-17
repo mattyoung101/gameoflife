@@ -87,7 +87,7 @@ static void setCellMultiple(bool *gridPtr, uint32_t *x, uint32_t y, uint32_t cou
     log_trace("Emitting %u %s cells starting at %u,%u", count, value ? "alive" : "dead", *x, y);
     for (uint32_t i = 0; i < count; i++) {
         if (!setCell(gridPtr, (*x)++, y, value)) {
-            log_error("Failed to insert cell for RLE at %u,%u", x - 1, y);
+            log_error("Failed to insert cell for RLE at %u,%u", *(x) - 1, y);
             log_error("Please check the current grid size of %ux%u is large enough to hold the "
                       "pattern.", gridWidth, gridHeight);
             exit(1);

@@ -1,0 +1,4 @@
+# ASan/LSan suppression file
+leak:libX11
+leak:amdgpu
+leak:nvidia

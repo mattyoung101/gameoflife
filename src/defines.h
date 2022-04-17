@@ -7,9 +7,10 @@
 
 /**
  * Version history:
- * v0.0.1-noopt: initial release, no optimisations
+ * v0.0.1-noopt: initial game of life implementation, no major optimisations
+ * v0.1.0-noopt: dded command line parser and various improvements
  */
-#define VERSION "0.0.1-noopt"
+#define VERSION "0.1.0-noopt"
 
 /// Default window width
 #define DEFAULT_WINDOW_WIDTH 1600
@@ -17,6 +18,6 @@
 #define DEFAULT_WINDOW_HEIGHT 900
 
 /// Default GoL grid width
-#define DEFAULT_GRID_WIDTH 1750
+#define DEFAULT_GRID_WIDTH 256
 /// Default GoL grid height
-#define DEFAULT_GRID_HEIGHT 1750
+#define DEFAULT_GRID_HEIGHT 256

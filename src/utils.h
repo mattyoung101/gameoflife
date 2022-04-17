@@ -12,6 +12,8 @@
 
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define XSTR(macro) STR(macro)
+#define STR(macro) #macro
 
 /**
  * Parses a size string in the format "[width]x[height]" with error checking

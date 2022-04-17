@@ -17,9 +17,11 @@ endif()
 
 include_directories(lib/glad/include)
 include_directories(lib/log)
+include_directories(lib/argtable3)
 include_directories(src)
 add_executable(gameoflife src/main.c lib/glad/src/glad.c src/life.c src/defines.h src/perf.c
-    src/perf.h src/utils.c src/utils.h lib/log/log.c lib/log/log.h)
+    src/perf.h src/utils.c src/utils.h lib/log/log.c lib/log/log.h lib/argtable3/argtable3.c
+    lib/argtable3/argtable3.h)
 target_link_libraries(gameoflife dl)
 
 # SDL
